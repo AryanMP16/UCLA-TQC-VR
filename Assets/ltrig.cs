@@ -1,0 +1,88 @@
+using UnityEngine;
+using UnityEngine.InputSystem;
+using System.Collections;
+using System.Collections.Generic;
+//NOTE: cone has radius 1
+
+public class SimpleTriggerLogger : MonoBehaviour
+{
+    public InputActionReference triggerValueAction;
+    public GameObject manifold;
+    public GameObject config;
+    public const float debounceDelay = 0.5f;
+    public const float duration = 0.5f;
+    private volatile float lastTriggerTime = -Mathf.Infinity;
+    private const float HEIGHT = 2.0f;
+    public LineRenderer lineRenderer;
+    private List<Vector3> points = new List<Vector3>();
+
+    public Vector3 on_manifold(float h, float phi) { //computes x, y, z positions on the manifold with said height and angle
+	if (h >= 0 && h <= HEIGHT && phi >= 0 && phi <= 2 * Mathf.PI) {
+	    float x = h/2.0f * Mathf.Cos(phi); float y = h; float z = h/2.0f * Mathf.Sin(phi);
+	    return new Vector3(x, y, z);}
+	else {
+	    Debug.Log("Invalid height or angle");
+	    return new Vector3(-111111, -111111, -111111);
+	}
+    }
+
+    void OnEnable() {
+        if (triggerValueAction != null)
+            triggerValueAction.action.Enable();
+    }
+
+    void OnDisable() {
+        if (triggerValueAction != null)
+            triggerValueAction.action.Disable();
+    }
+
+    
+    void Update()
+    {
+        if (triggerValueAction != null) {
+            float value = triggerValueAction.action.ReadValue<float>();	    
+            if (value > 0.1f && Time.time - lastTriggerTime > debounceDelay) {
+		StartCoroutine(rotate_n_trace());
+                lastTriggerTime = Time.time;
+            }
+        }
+    }
+
+    IEnumerator rotate_n_trace() {
+	Vector3 start_position = config.transform.position;
+	Vector3 center = new Vector3(0.0f, start_position.y, 0.0f);
+	float radius = new Vector2(start_position.x - center.x, start_position.z - center.z).magnitude;
+	//
+	float startAngle = Mathf.Atan2(start_position.z - center.z, start_position.x - center.x);
+        float endAngle   = startAngle + Mathf.PI;
+	//
+	float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            
+            float angle = Mathf.Lerp(startAngle, endAngle, t);
+            Vector3 newPos = center + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius;
+            config.transform.position = newPos;
+
+            points.Add(newPos);
+            lineRenderer.positionCount = points.Count;
+            lineRenderer.SetPositions(points.ToArray());
+
+            yield return null;
+        }
+	//final tweaks
+        Vector3 finalPos = start_position;
+        finalPos.x = -finalPos.x;
+        finalPos.z = -finalPos.z;
+        config.transform.position = finalPos;
+
+        points.Add(finalPos);
+        lineRenderer.positionCount = points.Count;
+        lineRenderer.SetPositions(points.ToArray());
+
+        yield return new WaitForSeconds(0.2f);
+        lineRenderer.positionCount = 0;
+    }
+}
