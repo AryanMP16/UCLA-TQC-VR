@@ -1,0 +1,56 @@
+using UnityEngine;
+using UnityEngine.InputSystem;
+using System.Collections;
+using System.Collections.Generic;
+//NOTE: cone has radius 1
+
+public class ltrig_braid : MonoBehaviour
+{
+    public InputActionReference triggerValueAction;
+    public const float debounceDelay = 0.5f;
+    public const float duration = 0.5f;
+    private volatile float lastTriggerTime = -Mathf.Infinity;
+    public LineRenderer strand_1;
+    public LineRenderer strand_2;
+    private List<Vector3> s1_points = new List<Vector3>();
+    private List<Vector3> s2_points = new List<Vector3>();
+
+    void OnEnable() {
+        if (triggerValueAction != null)
+            triggerValueAction.action.Enable();
+    }
+
+    void OnDisable() {
+        if (triggerValueAction != null)
+            triggerValueAction.action.Disable();
+	}
+
+    int braid_index = 0;
+    void Update()
+    {
+        if (triggerValueAction != null) {
+            float value = triggerValueAction.action.ReadValue<float>();
+            if (value > 0.1f && Time.time - lastTriggerTime > debounceDelay) {
+                StartCoroutine(braid(braid_index));
+                lastTriggerTime = Time.time;
+                braid_index++;
+            }
+        }
+    }
+    
+    IEnumerator braid(int index) {
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+	     elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            Vector3 newPos = new Vector3(0.5f * Mathf.Cos(Mathf.PI * t), t, 0.5f * Mathf.Sin(Mathf.PI * t));
+
+            s1_points.Add(newPos);
+            strand_1.positionCount = s1_points.Count;
+            strand_1.SetPositions(s1_points.ToArray());
+
+            yield return null;
+        }
+    }
+}

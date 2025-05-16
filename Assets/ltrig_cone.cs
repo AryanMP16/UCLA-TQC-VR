@@ -4,7 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 //NOTE: cone has radius 1
 
-public class SimpleTriggerLogger : MonoBehaviour
+public class ltrig_cone : MonoBehaviour
 {
     public InputActionReference triggerValueAction;
     public GameObject manifold;
@@ -15,6 +15,8 @@ public class SimpleTriggerLogger : MonoBehaviour
     private const float HEIGHT = 2.0f;
     public LineRenderer lineRenderer;
     private List<Vector3> points = new List<Vector3>();
+    private List<Vector3> s1_points = new List<Vector3>();
+    private List<Vector3> s2_points = new List<Vector3>();
 
     public Vector3 on_manifold(float h, float phi) { //computes x, y, z positions on the manifold with said height and angle
 	if (h >= 0 && h <= HEIGHT && phi >= 0 && phi <= 2 * Mathf.PI) {
@@ -24,6 +26,10 @@ public class SimpleTriggerLogger : MonoBehaviour
 	    Debug.Log("Invalid height or angle");
 	    return new Vector3(-111111, -111111, -111111);
 	}
+    }
+
+    void Start() {
+	lineRenderer.positionCount = 0;
     }
 
     void OnEnable() {
@@ -36,7 +42,7 @@ public class SimpleTriggerLogger : MonoBehaviour
             triggerValueAction.action.Disable();
     }
 
-    
+    int braid_index = 0;
     void Update()
     {
         if (triggerValueAction != null) {
@@ -44,6 +50,7 @@ public class SimpleTriggerLogger : MonoBehaviour
             if (value > 0.1f && Time.time - lastTriggerTime > debounceDelay) {
 		StartCoroutine(rotate_n_trace());
                 lastTriggerTime = Time.time;
+		braid_index++;
             }
         }
     }
